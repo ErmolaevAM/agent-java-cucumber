@@ -16,12 +16,29 @@ repositories {
 }
 
 dependencies {
-    compile 'com.epam.reportportal:client-java:3.0.3'
-    compile 'com.epam.reportportal:commons-model:3.0.0'
+    compile('com.epam.reportportal:client-java:3.0.3') {
+        ext.compileScope = true
+    }
+    compile('com.epam.reportportal:commons-model:3.0.0') {
+        ext.compileScope = true
+    }
+
 
     compileOnly 'info.cukes:gherkin:2.12.2'
 }
 
 task wrapper(type: Wrapper) {
     gradleVersion = '3.5'
+}
+
+publishing.publications.all {
+    pom.withXml {
+        asNode().dependencies.'*'.findAll() {
+            it.scope.text() == 'runtime' && (project.configurations.compile.allDependencies.find { dep ->
+                dep.name == it.artifactId.text() && dep.hasProperty('compileScope') && dep.compileScope
+            })
+        }.each {
+            it.scope*.value = 'compile'
+        }
+    }
 }
