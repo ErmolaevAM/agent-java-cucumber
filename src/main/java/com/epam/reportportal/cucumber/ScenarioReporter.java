@@ -21,6 +21,7 @@
 package com.epam.reportportal.cucumber;
 
 import com.epam.ta.reportportal.ws.model.StartTestItemRQ;
+import gherkin.formatter.model.Feature;
 import gherkin.formatter.model.Match;
 import gherkin.formatter.model.Result;
 import gherkin.formatter.model.Step;
@@ -29,6 +30,8 @@ import rp.com.google.common.base.Supplier;
 import rp.com.google.common.base.Suppliers;
 
 import java.util.Calendar;
+
+import static com.epam.reportportal.cucumber.Utils.extractTags;
 
 /**
  * Cucumber reporter for ReportPortal that reports scenarios as test methods.
@@ -73,6 +76,27 @@ public class ScenarioReporter extends AbstractReporter {
 	@Override
 	protected void afterStep(Result result) {
 		reportResult(result, decorateMessage("STEP " + result.getStatus().toUpperCase()));
+	}
+
+	@Override
+	protected void beforeFeature(Feature feature) {
+		StartTestItemRQ rq = new StartTestItemRQ();
+		Maybe<String> root = getRootItemId();
+
+		//set link from .feature file like a description for rq
+		rq.setDescription(feature.getDescription());
+
+		//set "Feature: FeatureName" like feature name.
+		rq.setName(Utils.buildStatementName(feature, null, AbstractReporter.COLON_INFIX, null));
+
+		rq.setTags(extractTags(feature.getTags()));
+		rq.setStartTime(Calendar.getInstance().getTime());
+		rq.setType(getFeatureTestItemType());
+		if (null == root) {
+			currentFeatureId = RP.get().startTestItem(rq);
+		} else {
+			currentFeatureId = RP.get().startTestItem(root, rq);
+		}
 	}
 
 	@Override
